@@ -20,13 +20,16 @@
 
 Нужно создать в корневой папке файл с названием .env с переменными окружения 
 для работы с базой данных.
-Пример:
+
+Пример содержимого файла:
+```
 DB_ENGINE=django.db.backends.postgresql
 DB_NAME=postgres
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 DB_HOST=db
 DB_PORT=5432
+```
 
 ### Запуск приложения в контейнерах
 
@@ -49,7 +52,8 @@ docker-compose exec web python manage.py collectstatic --no-input
 
 Нужно зайти на на http://localhost/admin/, авторизоваться и внести записи 
 в базу данных через админку.
-Резервную копию базы данных можно сделать командой
+
+Резервную копию базы данных можно создать командой
 ```
 docker-compose exec web python manage.py dumpdata > fixtures.json 
 ```
