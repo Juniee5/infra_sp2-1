@@ -33,12 +33,13 @@ DB_PORT=5432
 
 ### Запуск приложения в контейнерах
 
-Нужно перейти в папку infra_sp2/api_yamdb и запустить docker-compose командой 
+Нужно перейти в папку infra_sp2/infra и запустить docker-compose командой 
 ```
-docker-compose up
+docker-compose up -d
 ```
-Будут созданы и запущены необходимые для работы приложения контейнеры 
-(db, web, nginx).
+Будут созданы и запущены в фоновом режиме необходимые для работы приложения 
+контейнеры (db, web, nginx).
+
 Затем нужно внутри контейнера web выполнить миграции, создать 
 суперпользователя и собрать статику:
 ```
@@ -69,3 +70,12 @@ docker-compose stop
 ```
 docker-compose start 
 ```
+
+### Использованные технологии
+
+Python 3.7, Django, DRF, Simple-JWT, PostgreSQL, Docker, nginx, gunicorn.
+
+### Об авторе
+
+Волкова Галина Дмитриевна
+https://github.com/earlinn/
