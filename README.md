@@ -16,10 +16,26 @@
 Анонимные пользователи могут просматривать описания произведений, читать отзывы
 и комментарии.
 
-### Наполнение файла с переменными окружения
+Стек: Python 3.7, Django, DRF, Simple-JWT, PostgreSQL, Docker, nginx, gunicorn.
 
-Нужно создать в корневой папке файл с названием .env с переменными окружения 
-для работы с базой данных.
+### Разработчики проекта
+- [Белобоков Михаил (тимлид, разработка ресурсов Auth и Users)](https://github.com/Belobokovm)
+- [Волкова Галина (разработка ресурсов Categories, Genres и Titles)](https://github.com/earlinn)
+- [Гукасова Анна (разработка ресурсов Review и Comments)](https://github.com/gukasius)
+
+### Запуск приложения в контейнерах
+
+Сначала нужно клонировать репозиторий и перейти в корневую папку:
+```
+git clone git@github.com:earlinn/infra_sp2.git
+cd infra_sp2
+```
+
+Затем нужно перейти в папку infra_sp2/infra и создать в ней файл .env с 
+переменными окружения, необходимыми для работы приложения.
+```
+cd infra/
+```
 
 Пример содержимого файла:
 ```
@@ -29,11 +45,10 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 DB_HOST=db
 DB_PORT=5432
+SECRET_KEY=key
 ```
 
-### Запуск приложения в контейнерах
-
-Нужно перейти в папку infra_sp2/infra и запустить docker-compose командой 
+Далее следует запустить docker-compose: 
 ```
 docker-compose up -d
 ```
@@ -71,11 +86,479 @@ docker-compose stop
 docker-compose start 
 ```
 
-### Использованные технологии
+### Документация в формате Redoc:
 
-Python 3.7, Django, DRF, Simple-JWT, PostgreSQL, Docker, nginx, gunicorn.
+Чтобы посмотреть документацию API в формате Redoc, нужно локально запустить 
+проект и перейти на страницу http://127.0.0.1:8000/redoc/
 
-### Об авторе
+### Пользовательские роли
 
-Волкова Галина Дмитриевна
-https://github.com/earlinn/
+- __Аноним__ — может просматривать описания произведений, читать отзывы 
+и комментарии.
+- __Аутентифицированный пользователь (user)__ — может читать всё, как и Аноним,
+может публиковать отзывы и ставить оценки произведениям, может комментировать 
+отзывы; может редактировать и удалять свои отзывы и комментарии, редактировать 
+свои оценки произведений. Эта роль присваивается по умолчанию каждому новому 
+пользователю.
+- __Модератор (moderator)__ — те же права, что и у Аутентифицированного 
+пользователя, плюс право удалять и редактировать любые отзывы и комментарии.
+- __Администратор (admin)__ — полные права на управление всем контентом 
+проекта. Может создавать и удалять произведения, категории и жанры. 
+Может назначать роли пользователям.
+- __Суперюзер Django__ должен всегда обладать правами администратора, 
+пользователя с правами admin. Даже если изменить пользовательскую роль 
+суперюзера — это не лишит его прав администратора. Суперюзер — всегда 
+администратор, но администратор — не обязательно суперюзер.
+
+### Самостоятельная регистрация нового пользователя
+
+1. Пользователь отправляет POST-запрос с параметрами email и username 
+на эндпоинт /api/v1/auth/signup/.  
+*Пример POST-запроса:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"email": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string"  
+}
+
+2. Сервис YaMDB отправляет письмо с кодом подтверждения (confirmation_code) 
+на указанный адрес email.
+
+3. Пользователь отправляет POST-запрос с параметрами username и 
+confirmation_code на эндпоинт /api/v1/auth/token/, в ответе на запрос ему 
+приходит token (JWT-токен).  
+*Пример POST-запроса:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"confirmation_code": "string"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"token": "string",  
+}
+
+4. После регистрации и получения токена пользователь может отправить 
+PATCH-запрос на эндпоинт /api/v1/users/me/ и заполнить поля в своём 
+профайле.  
+*Пример POST-запроса:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"email": "user@example.com",  
+&nbsp;&nbsp;&nbsp;&nbsp;"first_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"last_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"bio": "string"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"email": "user@example.com",  
+&nbsp;&nbsp;&nbsp;&nbsp;"first_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"last_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"bio": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"role": "user"  
+}
+
+### Создание пользователя администратором
+
+1. Пользователя может создать администратор — через админ-зону сайта или 
+через POST-запрос на специальный эндпоинт api/v1/users/. Письмо с кодом 
+подтверждения пользователю отправлять не нужно.  
+*Пример POST-запроса:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"email": "user@example.com",  
+&nbsp;&nbsp;&nbsp;&nbsp;"first_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"last_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"bio": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"role": "user"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"email": "user@example.com",  
+&nbsp;&nbsp;&nbsp;&nbsp;"first_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"last_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"bio": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"role": "user"  
+}
+
+2. После этого пользователь должен самостоятельно отправить свой email 
+и username на эндпоинт /api/v1/auth/signup/, в ответ ему должно прийти 
+письмо с кодом подтверждения.
+
+3. Далее пользователь отправляет POST-запрос с параметрами username и 
+confirmation_code на эндпоинт /api/v1/auth/token/, в ответе на запрос 
+ему приходит token (JWT-токен), как и при самостоятельной регистрации.
+
+### Ресурсы API YaMDb
+
+- Ресурс __auth__: аутентификация.
+- Ресурс __users__: пользователи.
+- Ресурс __titles__: произведения, к которым пишут отзывы (определённый фильм, 
+книга или песенка).
+- Ресурс __categories__: категории (типы) произведений («Фильмы», «Книги», 
+«Музыка»).
+- Ресурс __genres__: жанры произведений. Одно произведение может быть 
+привязано к нескольким жанрам.
+- Ресурс __reviews__: отзывы на произведения. Отзыв привязан к определённому 
+произведению.
+- Ресурс __comments__: комментарии к отзывам. Комментарий привязан к 
+определённому отзыву.
+
+### Примеры запросов к ресурсам API YaMDb
+
+- Получение списка всех категорий  
+*Пример ответа на GET-запрос:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/categories/  
+Права доступа: Доступно без токена  
+[  
+&nbsp;&nbsp;&nbsp;&nbsp;{  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"count": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"next": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"previous": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"results": []  
+&nbsp;&nbsp;&nbsp;&nbsp;}  
+]
+
+- Добавление новой категории  
+*Пример POST-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/categories/  
+Права доступа: Администратор  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"slug": "string"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"slug": "string"  
+}
+
+- Удаление категории  
+*Пример DELETE-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/categories/{slug}/  
+Права доступа: Администратор
+
+- Получение списка всех жанров  
+*Пример ответа на GET-запрос:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/genres/  
+Права доступа: Доступно без токена  
+[  
+&nbsp;&nbsp;&nbsp;&nbsp;{  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"count": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"next": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"previous": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"results": []  
+&nbsp;&nbsp;&nbsp;&nbsp;}  
+]
+
+- Добавление жанра  
+*Пример POST-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/genres/  
+Права доступа: Администратор  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"slug": "string"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"slug": "string"  
+}
+
+- Удаление жанра  
+*Пример DELETE-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/genres/{slug}/  
+Права доступа: Администратор
+
+- Получение списка всех произведений  
+*Пример ответа на GET-запрос:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/  
+Права доступа: Доступно без токена  
+[  
+&nbsp;&nbsp;&nbsp;&nbsp;{  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"count": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"next": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"previous": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"results": []  
+&nbsp;&nbsp;&nbsp;&nbsp;}  
+]
+
+- Добавление произведения  
+*Пример POST-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/  
+Права доступа: Администратор  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"year": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"description": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"genre": [  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"string"  
+&nbsp;&nbsp;&nbsp;&nbsp;],  
+&nbsp;&nbsp;&nbsp;&nbsp;"category": "string"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"id": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"year": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"rating": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"description": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"genre": [  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{}  
+&nbsp;&nbsp;&nbsp;&nbsp;],  
+&nbsp;&nbsp;&nbsp;&nbsp;"category": {  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"slug": "string"  
+&nbsp;&nbsp;&nbsp;&nbsp;}  
+}
+
+- Получение информации о произведении  
+*Пример ответа на GET-запрос:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{titles_id}/  
+Права доступа: Доступно без токена  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"id": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"year": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"rating": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"description": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"genre": [  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{}  
+&nbsp;&nbsp;&nbsp;&nbsp;],  
+&nbsp;&nbsp;&nbsp;&nbsp;"category": {  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"slug": "string"  
+&nbsp;&nbsp;&nbsp;&nbsp;}  
+}
+
+- Частичное обновление информации о произведении  
+*Пример PATCH-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{titles_id}/  
+Права доступа: Администратор  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"year": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"description": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"genre": [  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"string"  
+&nbsp;&nbsp;&nbsp;&nbsp;],  
+&nbsp;&nbsp;&nbsp;&nbsp;"category": "string"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"id": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"year": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"rating": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"description": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"genre": [  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{}  
+&nbsp;&nbsp;&nbsp;&nbsp;],  
+&nbsp;&nbsp;&nbsp;&nbsp;"category": {  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"slug": "string"  
+&nbsp;&nbsp;&nbsp;&nbsp;}  
+}
+
+- Удаление произведения  
+*Пример DELETE-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{titles_id}/  
+Права доступа: Администратор
+
+- Получение списка всех отзывов  
+*Пример ответа на GET-запрос:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{title_id}/reviews/  
+Права доступа: Доступно без токена  
+[  
+&nbsp;&nbsp;&nbsp;&nbsp;{  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"count": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"next": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"previous": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"results": []  
+&nbsp;&nbsp;&nbsp;&nbsp;}  
+]
+
+- Добавление нового отзыва  
+*Пример POST-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{title_id}/reviews/  
+Права доступа: Аутентифицированные пользователи  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"text": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"score": 1  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"id": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"text": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"author": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"score": 1,  
+&nbsp;&nbsp;&nbsp;&nbsp;"pub_date": "2019-08-24T14:15:22Z"  
+}
+
+- Получение отзыва по id  
+*Пример ответа на GET-запрос:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{title_id}/reviews/{review_id}/  
+Права доступа: Доступно без токена  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"id": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"text": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"author": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"score": 1,  
+&nbsp;&nbsp;&nbsp;&nbsp;"pub_date": "2019-08-24T14:15:22Z"  
+}
+
+- Частичное обновление отзыва по id  
+*Пример PATCH-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{title_id}/reviews/{review_id}/  
+Права доступа: Автор отзыва, модератор или администратор  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"text": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"score": 1  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"id": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"text": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"author": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"score": 1,  
+&nbsp;&nbsp;&nbsp;&nbsp;"pub_date": "2019-08-24T14:15:22Z"  
+}
+
+- Удаление отзыва по id  
+*Пример DELETE-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{title_id}/reviews/{review_id}/  
+Права доступа: Автор отзыва, модератор или администратор
+
+- Получение списка всех комментариев к отзыву  
+*Пример ответа на GET-запрос:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{title_id}/reviews/{review_id}/comments/  
+Права доступа: Доступно без токена  
+[  
+&nbsp;&nbsp;&nbsp;&nbsp;{  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"count": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"next": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"previous": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"results": []  
+&nbsp;&nbsp;&nbsp;&nbsp;}  
+]
+
+- Добавление комментария к отзыву  
+*Пример POST-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{title_id}/reviews/{review_id}/comments/  
+Права доступа: Аутентифицированные пользователи  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"text": "string"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"id": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"text": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"author": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"pub_date": "2019-08-24T14:15:22Z"  
+}
+
+- Получение комментария к отзыву  
+*Пример ответа на GET-запрос:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{title_id}/reviews/{review_id}/comments/{comment_id}/  
+Права доступа: Доступно без токена  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"id": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"text": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"author": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"pub_date": "2019-08-24T14:15:22Z"  
+}
+
+- Частичное обновление комментария к отзыву  
+*Пример PATCH-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{title_id}/reviews/{review_id}/comments/{comment_id}/  
+Права доступа: Автор комментария, модератор или администратор  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"text": "string"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"id": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;"text": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"author": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"pub_date": "2019-08-24T14:15:22Z"  
+}
+
+- Удаление комментария к отзыву  
+*Пример DELETE-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/titles/{title_id}/reviews/{review_id}/comments/{comment_id}/  
+Права доступа: Автор комментария, модератор или администратор
+
+- Получение списка всех пользователей  
+*Пример ответа на GET-запрос:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/users/  
+Права доступа: Администратор  
+[  
+&nbsp;&nbsp;&nbsp;&nbsp;{  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"count": 0,  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"next": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"previous": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"results": []  
+&nbsp;&nbsp;&nbsp;&nbsp;}  
+]
+
+- Добавление пользователя  
+*Пример POST-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/users/  
+Права доступа: Администратор  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"email": "user@example.com",  
+&nbsp;&nbsp;&nbsp;&nbsp;"first_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"last_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"bio": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"role": "user"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"email": "user@example.com",  
+&nbsp;&nbsp;&nbsp;&nbsp;"first_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"last_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"bio": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"role": "user"  
+}
+
+- Получение пользователя по username  
+*Пример ответа на GET-запрос:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/users/{username}/  
+Права доступа: Администратор  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"email": "user@example.com",  
+&nbsp;&nbsp;&nbsp;&nbsp;"first_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"last_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"bio": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"role": "user"  
+}
+
+- Изменение данных пользователя по username  
+*Пример PATCH-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/users/{username}/  
+Права доступа: Администратор  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"email": "user@example.com",  
+&nbsp;&nbsp;&nbsp;&nbsp;"first_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"last_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"bio": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"role": "user"  
+}  
+*Пример ответа:*  
+{  
+&nbsp;&nbsp;&nbsp;&nbsp;"username": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"email": "user@example.com",  
+&nbsp;&nbsp;&nbsp;&nbsp;"first_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"last_name": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"bio": "string",  
+&nbsp;&nbsp;&nbsp;&nbsp;"role": "user"  
+}
+
+- Удаление пользователя по username  
+*Пример DELETE-запроса:*  
+Эндпойнт: http://127.0.0.1:8000/api/v1/users/{username}/  
+Права доступа: Администратор
